@@ -32,12 +32,10 @@
   <div class="container py-5">
     <div class="row justify-content-center">
       <div class="col-md-6">
-
         <div class="card p-4">
           <h2 class="text-center mb-4">Registro de Gato</h2>
 
           <form id="formGato">
-
             <div class="mb-3">
               <label class="form-label">Nombre</label>
               <input type="text" class="form-control" id="nombre" required placeholder="Ej: Michi">
@@ -63,6 +61,12 @@
               <input type="text" class="form-control" id="raza" required placeholder="Ej: Siamés">
             </div>
 
+            <div class="mb-3">
+              <label class="form-label">Imagen del gato</label>
+              <input type="file" class="form-control" id="imagen" accept="image/*" required>
+              <img id="preview" alt="Vista previa">
+            </div>
+
             <button type="submit" class="btn btn-primary w-100">
               Registrar Gato
             </button>
@@ -80,61 +84,72 @@
   </div>
 
   <script>
-    const BACKEND_URL = 'https://gatos-backend.onrender.com/gato';
+       const BACKEND_URL = 'https://gatos-backend.onrender.com/gato';
 
-    document.getElementById('formGato').addEventListener('submit', async (e) => {
+    document.getElementById("imagen").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    const preview = document.getElementById("preview");
 
-      e.preventDefault();
+    if (file) {
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = "block";
+    } else {
+        preview.src = "";
+        preview.style.display = "none";
+    }
+});
 
-      const datos = {
-        nombre: document.getElementById('nombre').value.trim(),
-        propietario: document.getElementById('propietario').value.trim(),
-        edad: Number(document.getElementById('edad').value),
-        peso: Number(document.getElementById('peso').value),
-        raza: document.getElementById('raza').value.trim()
-      };
+document.getElementById("formGato").addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-      const resultadoDiv = document.getElementById('resultado');
+    const resultadoDiv = document.getElementById("resultado");
+    resultadoDiv.style.display = "none";
 
-      resultadoDiv.style.display = 'none';
+    const formData = new FormData();
 
-      try {
+    formData.append("nombre", document.getElementById("nombre").value.trim());
 
+    formData.append("edad", document.getElementById("edad").value);
+
+    formData.append("peso", document.getElementById("peso").value);
+
+    formData.append("raza", document.getElementById("raza").value.trim());
+
+    const imagenInput = document.getElementById("imagen");
+
+    if (imagenInput.files.length > 0) {
+        formData.append("imagen", imagenInput.files[0]);
+    }
+
+    try {
         const respuesta = await fetch(BACKEND_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(datos)
-        });
+            method: "POST",
+            body: formData
 
-        const data = await respuesta.json();
+    });
 
-        if (respuesta.ok) {
+    const data = await respuesta.json();
 
-          resultadoDiv.className = 'alert alert-success mt-4';
-          resultadoDiv.textContent = data.mensaje;
-          document.getElementById('formGato').reset();
+if (respuesta.ok) {
+    resultadoDiv.className = "alert alert-success mt-4";
 
-        } else {
+    resultadoDiv.innerHTML =
+        data.mensaje +
+        (
+            data.imagenUrl
+                ? `<br><img src="${data.imagenUrl}" style="max-width:100%;margin-top:10px;border-radius:8px;">`
+                : ""
+        );
+} else {
+    resultadoDiv.className = "alert alert-danger mt-4";
+    resultadoDiv.textContent = data.mensaje || "Error al registrar el gato";
+}
 
-          resultadoDiv.className = 'alert alert-danger mt-4';
-          resultadoDiv.textContent =
-            data.mensaje || 'Error al registrar el gato';
-        }
+resultadoDiv.style.display = "block";
 
-        resultadoDiv.style.display = 'block';
-
-      } catch (error) {
-
-        console.error('Error:', error);
-
-        resultadoDiv.className = 'alert alert-danger mt-4';
-        resultadoDiv.textContent =
-          'Error de conexión con el servidor.';
-
-        resultadoDiv.style.display = 'block';
-      }
+} catch (error) {
+    console.error(error);
+}
 
     });
   </script>
